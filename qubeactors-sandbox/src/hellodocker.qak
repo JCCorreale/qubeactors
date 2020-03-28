@@ -1,11 +1,25 @@
 System hellodocker
 
-Context hellocontext ip [host="localhost" port=8080]
+Dispatch greet : greet(Name)
+
+Context hellocontext ip [host="192.168.1.6" port=8080]
 
 QActor hello context hellocontext
 {
-	State s0 initial {
+	State s0 initial { }
+	Transition t0
+		whenMsg greet -> greet
 		
-		println("Hello")
+	State greet {
+		onMsg (greet : greet(Name)) {
+			println("Hello ${payloadArg(0)}")
+		}
 	}
+	Goto s0
 }
+
+//QActor greeter context hellocontext {
+//	State s0 initial {
+//		forward hello -m greet : greet(Greeter)
+//	}
+//}

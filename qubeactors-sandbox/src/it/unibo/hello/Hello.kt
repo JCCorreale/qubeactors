@@ -18,8 +18,17 @@ class Hello ( name: String, scope: CoroutineScope ) : ActorBasicFsm( name, scope
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
-						println("Hello")
 					}
+					 transition(edgeName="t00",targetState="greet",cond=whenDispatch("greet"))
+				}	 
+				state("greet") { //this:State
+					action { //it:State
+						if( checkMsgContent( Term.createTerm("greet(Name)"), Term.createTerm("greet(Name)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								println("Hello ${payloadArg(0)}")
+						}
+					}
+					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 			}
 		}
