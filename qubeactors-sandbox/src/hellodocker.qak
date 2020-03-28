@@ -1,0 +1,11 @@
+System hellodocker
+
+Context hellocontext ip [host="localhost" port=8080]
+
+QActor hello context hellocontext
+{
+	State s0 initial {
+		
+		println("Hello")
+	}
+}
