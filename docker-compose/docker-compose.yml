@@ -1,0 +1,28 @@
+version: '2.1'
+
+services:
+  hello:
+    build: ../qubeactors-sandbox
+    image: qubeactors/hello
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.1"
+    ports:
+      - "8080:8080"
+  greeter:
+    build: ../qubeactors-docker-greeter
+    image: qubeactors/greeter
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.2"
+    #ports:
+    #  - "8080:8080"
+
+networks:
+  qubeactors-network:
+    name: qubeactors-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

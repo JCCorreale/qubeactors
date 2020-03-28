@@ -1,5 +1,5 @@
 %====================================================================================
 % hellodocker description   
 %====================================================================================
-context(hellocontext, "localhost",  "TCP", "8080").
+context(hellocontext, "172.20.128.1",  "TCP", "8080").
  qactor( hello, hellocontext, "it.unibo.hello.Hello").

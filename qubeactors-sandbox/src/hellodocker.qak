@@ -2,7 +2,7 @@ System hellodocker
 
 Dispatch greet : greet(Name)
 
-Context hellocontext ip [host="localhost" port=8080]
+Context hellocontext ip [host="172.20.128.1" port=8080]
 
 QActor hello context hellocontext
 {

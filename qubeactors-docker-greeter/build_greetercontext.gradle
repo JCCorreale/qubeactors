@@ -93,7 +93,7 @@ sourceSets {
     //main.java.srcDirs += 'resources'
 }
 
-mainClassName = 'it.unibo.hellocontext.MainGreetercontextKt'
+mainClassName = 'it.unibo.greetercontext.MainGreetercontextKt'
 
 jar {
     println("executing jar")
