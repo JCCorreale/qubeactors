@@ -198,11 +198,50 @@ ENTRYPOINT ["bash", "/qubeactors-sandbox-1.0/bin/qubeactors-sandbox"]</pre>
 </ol>
 <h2>Deploying Multiple Interacting Contexts</h2>
 <ol>
-<li>First, let's test two interacting actors in the same context. Edit the <k>hellodocker.qak</k> file as follows: <pre>System hellodocker
+
+<li>Create separate projects for the different contexts. In each project's root folder create a Dockerfile (similar to the one from the previous section):
+<pre>FROM openjdk:12.0.2
+EXPOSE 8080
+ADD ./build/distributions/*.tar /
+ADD ./*.pl /
+ENTRYPOINT ["bash", "/&lt;project-name&gt;-1.0/bin/&lt;project-name&gt;"]</pre>
+where <k>&lt;project-name&gt;</k> is the name used by Gradle to name the folders in the <k>build/distributions</k> directory.
+</li>
+<li>Create a <k>docker-compose.yml</k> file. Since the actors need to communicate with each other (<b>note:</b> MQTT not considered at the moment).
+we will set up a container network and assign to each container a different IP address:
+<pre>
+version: '2.1'
+
+services:
+  hello:
+    build: &lt;relative-path-to-Dockerfile-folder&gt;
+    image: qubeactors/hello
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.1"
+  greeter:
+    build: &lt;relative-path-to-Dockerfile-folder&gt;
+    image: qubeactors/greeter
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.2"
+
+networks:
+  qubeactors-network:
+    name: qubeactors-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+</pre>
+</li>
+<li>In each project, create a QActork executable model using the IP addresses specified in the <k>docker-compose.yml</k> file:
+<pre>System hellodocker
 
 Dispatch greet : greet(Name)
 
-Context hellocontext ip [host="localhost" port=8080]
+Context hellocontext ip [host="172.20.128.1" port=8080]
 
 QActor hello context hellocontext
 {
@@ -216,14 +255,30 @@ QActor hello context hellocontext
 		}
 	}
 	Goto s0
-}
+}</pre>
+<pre>System greeterdocker
 
-QActor greeter context hellocontext {
+Dispatch greet : greet(Name)
+
+Context greetercontext ip [host="172.20.128.2" port=8080]
+Context hellocontext ip [host="172.20.128.1" port=8080]
+
+ExternalQActor hello context hellocontext
+
+QActor greeter context greetercontext {
 	State s0 initial {
 		forward hello -m greet : greet(Greeter)
 	}
-}</pre></li>
-<li>Build the system with <pre>gradle build eclipse</pre> and run it.</li>
+}</pre>
+</li>
+<li>Build deployable artifacts for each project: <pre>gradle -b build_&lt;context&gt;.gradle build</pre></li>
+<li>Build <k>docker-compose.yml</k> by running (in the corresponding directory):
+<pre>docker-compose build</pre>
+</li>
+<li>Deploy the QActork contexts by running <pre>docker-compose up</pre>
+the logs of the QActork infrastructure should show that the message has been successfully sent and received:</li>
+<img src="console.png"/>
+<li>Clean up the deployment when done: <pre>docker-compose down</pre></li>
 </ol>
 
 <div style="background-color:rgba(86, 56, 253, 0.9); width:100%;text-align:center;font-size:small;color:white">
