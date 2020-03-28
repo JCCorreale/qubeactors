@@ -2,8 +2,8 @@ System greeterdocker
 
 Dispatch greet : greet(Name)
 
-Context greetercontext ip [host="localhost" port=8090]
-Context hellocontext ip [host="192.168.1.6" port=8080]
+Context greetercontext ip [host="192.168.1.6" port=8081]
+Context hellocontext ip [host="localhost" port=8080]
 
 ExternalQActor hello context hellocontext
 
