@@ -1,0 +1,18 @@
+System greeterdocker
+
+Dispatch greet : greet(Name)
+
+Context greetercontext ip [host="172.17.0.4" port=8080]
+//Context hellocontext ip [host="172.20.128.1" port=8080]
+Context hellocontext ip [host="172.17.0.6" port=8080]
+
+ExternalQActor hello context hellocontext
+
+QActor greeter context greetercontext {
+	State s0 initial {
+		
+		run itunibo.qubeactor.probes.httpProbe.create(myself, "/probe", 9999)
+		
+		forward hello -m greet : greet(Greeter)
+	}
+}

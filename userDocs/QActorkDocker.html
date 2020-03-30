@@ -199,7 +199,7 @@ ENTRYPOINT ["bash", "/qubeactors-sandbox-1.0/bin/qubeactors-sandbox"]</pre>
 <h2>Deploying Multiple Interacting Contexts</h2>
 <ol>
 
-<li>Create separate projects for the different contexts. In each project's root folder create a Dockerfile (similar to the one from the previous section):
+<li>Create a separate projects for each different context. In each project's root folder create a Dockerfile (similar to the one from the previous section):
 <pre>FROM openjdk:12.0.2
 EXPOSE 8080
 ADD ./build/distributions/*.tar /
@@ -236,7 +236,7 @@ networks:
         - subnet: 172.20.0.0/16
 </pre>
 </li>
-<li>In each project, create a QActork executable model using the IP addresses specified in the <k>docker-compose.yml</k> file:
+<li>In each project, create a QActork executable model using the IP addresses specified in the <k>docker-compose.yml</k> file, for example:
 <pre>System hellodocker
 
 Dispatch greet : greet(Name)

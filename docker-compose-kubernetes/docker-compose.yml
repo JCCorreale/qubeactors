@@ -1,0 +1,28 @@
+version: '2.1'
+
+services:
+  hello:
+    build: ../qubeactors-kubernetes-hello
+    image: qubeactors/hello
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.1"
+    ports:
+      - "9999:9999"
+  greeter:
+    build: ../qubeactors-kubernetes-greeter
+    image: qubeactors/greeter
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.2"
+    ports:
+      - "9999:9999"
+
+networks:
+  qubeactors-network:
+    name: qubeactors-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,31 @@
+System hellodocker
+
+Dispatch greet : greet(Name)
+
+Context hellocontext ip [host="172.17.0.6" port=8080]
+
+QActor hello context hellocontext
+{
+	State s0 initial { 
+		
+		run itunibo.qubeactor.probes.httpProbe.create(myself, "/probe", 9999)
+	}
+	Goto waitGreetings
+	
+	State waitGreetings {}
+	Transition t0
+		whenMsg greet -> greet
+		
+	State greet {
+		onMsg (greet : greet(Name)) {
+			println("Hello ${payloadArg(0)}")
+		}
+	}
+	Goto waitGreetings
+}
+
+//QActor greeter context hellocontext {
+//	State s0 initial {
+//		forward hello -m greet : greet(Greeter)
+//	}
+//}

@@ -1,0 +1,477 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+ 
+<style type="text/css">
+body
+{
+    margin-left:  30px;
+    margin-right: 30px;
+	font-size: 110%;
+};
+
+P{
+    font-family: Tahoma;
+    font-size: 110%;
+};
+
+a, a:visited, a:active, a:link, a:hover {
+    text-decoration: underline;
+    color: #545454;
+    background-color: transparent;
+}
+
+a:hover {
+    background-color: #cccccc;
+}
+
+
+hr {
+    clear: both;
+    height: 1px;
+    color: #242424;
+    background-color: transparent;
+}
+
+h1, h2, h3 {
+    color: #242424;
+    clear: left;
+    font: 100% Tahoma, Helvetica, Arial, sans-serif;
+    margin: 10;
+    margin-right: 15px;
+    margin-bottom: 0.5em;
+    padding-top: 0.5em;
+    border-bottom: 1px solid #242424;
+}
+
+h1 {
+    font-size: 150%;
+    background-color: #b2c0ff;
+}
+
+h2 {
+    background-color: #d9fbff;
+    font-size: 110%;
+}
+
+h3 {
+	background-color: #e6ccff;
+    font-size: 100%;
+}
+h4 {
+    background-color: #99ffcc;
+    font-size: 100%;
+	width: 750px;
+}
+#i {
+    color: #ff1010;
+}
+tt{
+	font-family: "Arial";
+    font-size: 80%;
+	color: #006600;
+}
+em{
+	font-family: "Arial";
+    font-size: 80%;
+	font-weight: bold;
+	border-style:solid;
+	border-color: #ccffff;
+    color: #0033cc;
+}
+bc{
+	font-family: "Arial";
+	font-size: 80%;
+	font-weight: bold;
+    color: #990000;
+	background-color: #fcf8c7;
+}
+k{
+	font-family: "Arial";
+	font-weight: bold;
+    color: #990000;
+	 
+}
+ks{
+	font-family: "Arial";
+	font-weight: bold;
+    color: #0000CD	;
+	 
+}
+kc{
+	font-family: "Arial";
+	font-weight: bold;
+    color: #008000	;
+	 
+}
+pre{
+	font-family: "Helvetica";
+	font-size: 90%;
+	background-color: #fcf8c7;
+	border: 1px solid blue;
+}
+m{
+	
+	line-height: 100%;
+ 	font-size: 75%;
+}
+div.body{
+	width: 800px;
+    font-size: 20px;
+}   
+div.body.p{
+    font-size: 150%;
+} 
+div.req{
+	background-color: #d9ffb3;
+    font-size: 18px;
+	width: 700px;
+    border: 3px solid green;
+    padding: 15px;
+    margin: 10px;
+}       
+div.remark{
+	background-color: #FFFC33;     
+    border: 3px solid green;
+    padding: 15px;
+    margin: 10px;
+}  
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  font-size: 100%;
+} 
+
+
+        
+</style>
+    
+<head>
+   
+<title>QActok Kubernetes</title></head>
+    
+<body>
+<div id="body">
+<h1>Deploy QActork using Kubernetes<font size="5"></font> </h1>
+
+<h2>Setting up Liveness and Readiness Probes</h2>
+<ol>
+<li>Create a simple HTTP server in each project with the following code (for example, in a new source folder called <k>resources</k>):
+<m><hr>Remember to add the new folder in the Gradle <k>sourceSets</k> section of <b>all</b> needed Gradle files.<hr></m>
+<pre>
+object httpProbe {
+	
+	fun create(actor: ActorBasicFsm, endpoint : String, port: Int) {
+		
+		println( "CREATE HTTP PROBE ${endpoint} FOR ACTOR ${actor} ON PORT ${port}")
+		
+		val server = HttpServer.create(InetSocketAddress(port), 0);
+	        server.createContext(endpoint, { httpExchange ->
+				val response = "OK";
+		            httpExchange.sendResponseHeaders(200, response.length.toLong());
+		            val os = httpExchange.getResponseBody();
+		            os.write(response.toByteArray());
+		            os.close();
+		});
+	        server.setExecutor(null);
+	        server.start();
+	}
+}</pre>
+<li>Espose the port when the probe will be available in each project's Dockerfile, for example: <pre>EXPOSE 9999</pre></li>
+<li>In order to test the probe locally, expose the port on <k>localhost</k> by adding the <k>ports</k> directive to the <k>docker-compose.yml</k> file:
+<m><hr><b>Note:</b>&nbsp;This can be done only for one context to avoid overlapping on local ports.<hr></m>
+<pre>services:
+  hello:
+    build: ../qubeactors-kubernetes-hello
+    image: qubeactors/hello
+    mem_limit: 350m
+    networks:
+      qubeactors-network:
+        ipv4_address: "172.20.128.1"
+    ports:
+      - "9999:9999"</pre></li>
+</li>
+<li>Change the <k>hellodocker.qak</k> file as follows:
+<pre>QActor hello context hellocontext
+{
+	State s0 initial { 
+		
+		run itunibo.qubeactor.probes.httpProbe.create(myself, "/probe", 9999)
+	}
+	Goto waitGreetings
+	
+	State waitGreetings {}
+	Transition t0
+		whenMsg greet -> greet
+		
+	State greet {
+		onMsg (greet : greet(Name)) {
+			println("Hello ${payloadArg(0)}")
+		}
+	}
+	Goto waitGreetings
+}</pre>
+</li>
+<li>In the <k>greeterdocker.qak</k> file, just add the following line to the initial state to create the probe:
+<pre>run itunibo.qubeactor.probes.httpProbe.create(myself, "/probe", 9999)</pre></li>
+<li>Perform a local test of the probe:
+<ol>
+<li>Build deployable artifacts for each project: <pre>gradle -b build_&lt;context&gt;.gradle build</pre></li>
+
+<li>Run the deployment with <k>docker-compose</k>
+<pre>docker-compose build</pre>
+<pre>docker-compose up</pre></li>
+<li>The <k>/probe</k> endpoint should be accessible from you machine on <pre>&lt;docker-machine-ip&gt;:9999/probe</pre>
+<m><hr><b>Note:</b>&nbsp;<pre>&lt;docker-machine-ip&gt;</pre> can be get with the command <pre>docker-machine ip default</pre><hr></m>
+<li><pre>docker-compose down</pre></li>
+</ol>
+</li>
+</ol>
+
+<h2>Setting up Kubernetes Configuration</h2>
+<ol>
+<li>Create this file system structure for the Kubernetes configuration files:
+<pre>
+kubernetes
+	services
+		base
+			greeter.yml
+			hello.yml
+			kustomization.yml
+</pre>
+</li>
+<li><k>greeter.yml</k>
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeter
+  template:
+    metadata:
+      labels:
+        app: greeter
+    spec:
+      containers:
+      - name: gre
+        image: qubeactors/greeter
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: 350Mi
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /probe
+            port: 9999
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 20
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /probe
+            port: 9999
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeter
+spec:
+  #type: NodePort
+  selector:
+    app: greeter
+  ports:
+    - port: 8080
+      #nodePort: 30080
+      targetPort: 8080</pre>
+</li>
+
+<li><k>hello.yml</k>
+<pre>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - name: hel
+        image: qubeactors/hello
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: 350Mi
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /probe
+            port: 9999
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 20
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /probe
+            port: 9999
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  #type: NodePort
+  selector:
+    app: hello
+  ports:
+    - port: 8080
+      #nodePort: 30080
+      targetPort: 8080</pre>
+</li>
+
+<li><k>kustomization.yml</k>
+<pre>resources:
+- hello.yml
+- greeter.yml</pre>
+
+<m><hr>The <k>kustomize</k> tool is not actually needed because there is no <k>overlays</k> folder. However we'll use it anyway in order to create a more general project structure.<hr></m>
+</ol>
+
+
+<h2>Deploy to Kubernetes</h2>
+
+
+<ol>
+<li>Create a local Kubernetes cluster using Minikube:
+<m><hr>When a Kubernetes cluster is created in Minikube, a context is created with
+the same name as the Minikube profile and is then set as the current context.
+So, <code>kubectl</code> commands that are issued after the cluster is created in Minikube
+will be sent to that cluster.<hr></m>
+<pre>minikube start -p qubeactors ^
+--memory=2048  ^
+--cpus=2 --disk-size=6g ^
+--kubernetes-version=v1.15.0 ^
+--vm-driver=virtualbox</pre></li>
+<m><hr>This will create a VirtualBox virtual machine with the specified available resources.<hr></m>
+<li>Run:<pre>minikube docker-env -p qubeactors</pre>
+the last two line in the output show a command that can be used to access the internal Minikube Docker engine from our shell:
+<pre>REM To point your shell to minikube's docker-daemon, run:
+REM @FOR /f "tokens=*" %i IN ('minikube -p qubeactors docker-env') DO @%i</pre>
+<li>Run the command <pre>@FOR /f "tokens=*" %i IN ('minikube -p qubeactors docker-env') DO @%i</pre></li>
+<li>Run <pre>docker-compose build</pre> <u>from the same shell when the previous command was issued.</u></li>
+<m><hr>You may notice that something is changed if <code>docker-compose</code> starts downloading the JDK image.
+That happens if the internal Minikube Docker engine does not have the JDK image already available. Also, notice that
+this command works even if you haven't started Docker for Windows.<hr></m>
+</li>
+<li>Create a Kubernetes namespace: <pre>kubectl create namespace qubeactors</pre></li>
+<li>Set the created namespace as the default namespace: <pre>kubectl config set-context qubeactors --namespace=qubeactors</pre>
+<m><hr>This works because <code>qubeactors</code> is the name of the current context (previously set by Minikube). Otherwise
+one should first get the current context name with <code>kubectl config current-context</code> or <code>kubectl config get-contexts</code>
+(which also shows the context default namespace).<hr></m>
+</li>
+<li>From where you put the file system structure with the Kubernetes configuration, as explained in the previous section, run: <pre>kubectl apply -k kubernetes/services/base</pre></li>
+<li>Run <pre>kubectl get pods -o wide</pre>
+the output should look like this:<br/>
+<img src="kube-get-pods.png"/><br/>
+You may notice that some Pods failed to start. This is normal because the IP set for the QActork contexts may not match with the
+IP assigned by Kubernetes.
+<li>To find out the reason for the failue, run the <code>kubectl describe</code> command <pre>kubectl describe pod greeter-c6449c468-42tdl</pre>
+the output will show that the pod failed to run because the liveness and readiness probe failed.
+</li>
+<li>To get a deeper understanding of the reason behind the failure, let's see the Pod logs: <pre>kubectl logs greeter-c6449c468-42tdl</pre>
+the output will show that the QActork infrastructure is still trying to create a proxy to the other context. That's because the configured
+IP is not present in the Kubernetes internal network. This causes the actor code not to be run, which results in the liveness and readiness
+probes not to be available for Kubernetes, ultimately causing the error shown by the <code>kubectl describe</code> command.
+</li>
+<div class="remark">
+Unfurtunately, QActork requires to <bc>statically assign</bc> IP addresses to contexts. Since Kubernetes seems not to allow the assignment of static IPs
+to Pods, due to the dynamic nature of its IP layer, we need a workaround. <br/>
+For now, we just configure our QActork executable models to use the IPs currently provided by Kubernetes. 
+Further ideas are presented at the end of this page.
+</div>
+<m><hr><b>Note:</b>&nbsp; The workaround is clearly in contrast with Kubernetes best practises but seems quite stable since Kubernetes 
+appears to use the same IPs for the Pods if possible, although that is not guaranteed. However, working in this way
+implies that communication will happen only between the pods with the configured IP addresses. Replicas of the Pods
+will have different IPs and will not partecipate in the communication (a fact that undermines some crucial benefits of using Kubernetes).<hr></m>
+</li>
+<li>Update the QActork executable models by assigning to each context the IP assigned to the corresponding Kubernetes Pod (which is shown by the <code>kubectl get pods -o wide</code> command).</li>
+<li>Rebuild the deployable artifact and build the images (with the console linked to the internal Minikube Docker engine, as before):
+<pre>gradle -b build_greetercontext.gradle build</pre>
+<pre>docker-compose build</pre>
+<li>After a wile, the deployment should be up and running. The <code>kubectl get pods -o wide</code> should return something similar to:<br>
+<img src="kube-get-pods-2.png"/>
+what happened is that when Kubernetes was restarting the Pods due to probe failures, it automatically fetched the latest container images that we had just built
+with the <code>docker-compose build</code> command. This way it was able to update the images without being explicitly instructed to do that.
+<li>The <code>kubectl logs</code> command will show that the communication has been successfully accomplished:<br/>
+<img src="kube-output-greeter.png"/><br/>
+<img src="kube-output-hello.png"/>
+</li>
+<li>Now you can clean up the deployment:
+<pre>kubectl delete namespace qubeactors</pre>
+<pre>minikube stop -p qubeactors</pre>
+<pre>minikube delete --profile qubeactors</pre>
+</li>
+
+<h2>Further Research</h2>
+During the experimentation a few ideas about how to achieve better integration between the QActork infrastructure and Kubernetes have come to mind, which are presented in the following sections.
+<h3>Hostname Support</h3>
+Enhance the infrastrucutre with support for hostnames such has <code>&lt;protocol&gt;://hello</code> or <code>&lt;protocol&gt;://greeter</code>. 
+This should allow to exploit the built-in discovery and load balancing feature of Kubernetes, resolving the static IP assignment problem.
+<h3>Deploying with an MQTT Broker</h3>
+Using an MQTT Broker may also solve the issue since the actors no longer need to know each others IP addresses, as is needed for TCP communication.
+<h3>Automated Configuration</h3>
+Default configuration and build files for both Docker and Kubernetes could be generated automatically from QActork executable models in order to foster a faster and less error-prone development.
+<h3>Buil-in Infrastructure Support</h3>
+Some resources could be automatically generated and instantiated by the QActork infrastructure if needed, for example:
+<ul><li>Liveness and readiness (and startup) probes</li>
+<li>Container image running the MQTT Broker (and correspoing configuration)</li>
+</ul>
+<h3>Support for Other Kubernetes Features</h3>
+Kubernetes offers support for many aspects of microservice development, for example:
+<ul><li>Centralized Configuration</li>
+<li>API Gateway (Ingress)</li>
+<li>Certification Management</li>
+Therefore, it could be useful integrate some of these features with the QActork infrastructure.</ul>
+<h2>Open Issues</h2>
+<ul>
+<li>Service Objects in Kuberentes configuration probably not needed at the moment</li>
+</ul>
+
+
+<div style="background-color:rgba(86, 56, 253, 0.9); width:100%;text-align:center;font-size:small;color:white">
+By Jean Claude Correale
+</div> 
+
+</body>
+</html>
+
+
+ 
