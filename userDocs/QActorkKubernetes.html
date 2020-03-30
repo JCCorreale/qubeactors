@@ -450,16 +450,23 @@ Using an MQTT Broker may also solve the issue since the actors no longer need to
 <h3>Automated Configuration</h3>
 Default configuration and build files for both Docker and Kubernetes could be generated automatically from QActork executable models in order to foster a faster and less error-prone development.
 <h3>Buil-in Infrastructure Support</h3>
-Some resources could be automatically generated and instantiated by the QActork infrastructure if needed, for example:
-<ul><li>Liveness and readiness (and startup) probes</li>
-<li>Container image running the MQTT Broker (and correspoing configuration)</li>
+Some resources could be automatically generated and instantiated by the QActork infrastructure, for example:
+<ul><li>Liveness and readiness probes (and startup probe,  if needed)</li>
+<li>Container image running the MQTT Broker (and correspoing configuration) if needed</li>
 </ul>
-<h3>Support for Other Kubernetes Features</h3>
+<h3>Exploit Kubernetes Stateful Container Support</h3>
+Kubernetes is best suited to manage stateless containers. However, newer versions offer ways to manage stateful containers as well:
+<ul>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/">StatefulSets</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes"/>PersistentVolumes</a></li>
+It could be worth exploring solutions using these new concepts for QActork deployment.
+</ul>
+<h3>Integrate Other Kubernetes Features</h3>
 Kubernetes offers support for many aspects of microservice development, for example:
 <ul><li>Centralized Configuration</li>
 <li>API Gateway (Ingress)</li>
 <li>Certification Management</li>
-Therefore, it could be useful integrate some of these features with the QActork infrastructure.</ul>
+Therefore, it could be useful integrate some of these features within the QActork infrastructure.</ul>
 <h2>Open Issues</h2>
 <ul>
 <li>Service Objects in Kuberentes configuration probably not needed at the moment</li>
